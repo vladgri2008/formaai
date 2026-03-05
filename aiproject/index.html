@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>forma — генератор текста</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+            color: #e5e5e5;
+            line-height: 1.6;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Красивый фон */
+        .bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            background: #0a0a0a;
+        }
+
+        .grid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            opacity: 0.5;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .noise {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 50%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+            opacity: 0.4;
+            animation: noiseMove 15s ease-in-out infinite alternate;
+        }
+
+        @keyframes noiseMove {
+            0% { transform: scale(1) translate(0, 0); opacity: 0.3; }
+            100% { transform: scale(1.2) translate(-2%, -2%); opacity: 0.5; }
+        }
+
+        .glow {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 30%);
+            animation: glowRotate 30s linear infinite;
+            opacity: 0.3;
+        }
+
+        @keyframes glowRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Хедер с центрированием */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 300;
+            letter-spacing: -0.02em;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #6b6b6b;
+            font-size: 0.9rem;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
+        /* Основная карточка */
+        .card {
+            background: rgba(18, 18, 18, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid #262626;
+            border-radius: 24px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            transition: border-color 0.2s;
+        }
+
+        .card:hover {
+            border-color: #404040;
+        }
+
+        .card-body {
+            padding: 32px;
+        }
+
+        /* Тема с счетчиком */
+        .topic-wrapper {
+            margin-bottom: 28px;
+        }
+
+        .topic-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: #a3a3a3;
+        }
+
+        .counter {
+            font-size: 0.8rem;
+            color: #525252;
+            transition: color 0.2s;
+        }
+
+        .counter.near-limit {
+            color: #a16207;
+        }
+
+        .counter.at-limit {
+            color: #b91c1c;
+        }
+
+        #topic {
+            width: 100%;
+            padding: 14px 18px;
+            background: #141414;
+            border: 1px solid #2a2a2a;
+            border-radius: 20px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            color: #fff;
+            transition: all 0.2s;
+            resize: none;
+            line-height: 1.5;
+        }
+
+        #topic:focus {
+            outline: none;
+            border-color: #525252;
+            background: #1a1a1a;
+        }
+
+        #topic::placeholder {
+            color: #4a4a4a;
+        }
+
+        /* Настройки */
+        .settings {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #262626;
+        }
+
+        .setting-label {
+            color: #bfbfbf;
+            font-size: 0.9rem;
+        }
+
+        select {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 30px;
+            padding: 6px 30px 6px 12px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            color: #fff;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #525252;
+        }
+
+        /* Дополнительные опции */
+        .section-title {
+            color: #a3a3a3;
+            font-size: 0.85rem;
+            margin: 20px 0 12px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .options-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .option {
+            padding: 8px 16px;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            color: #bfbfbf;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .option:hover {
+            background: #2a2a2a;
+            border-color: #404040;
+        }
+
+        .option.active {
+            background: #2a2a2a;
+            border-color: #737373;
+            color: #fff;
+        }
+
+        /* Прогресс */
+        .progress {
+            height: 2px;
+            background: #262626;
+            margin: 24px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #fff;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* Кнопка */
+        .btn {
+            width: 100%;
+            padding: 16px;
+            background: #fff;
+            border: none;
+            border-radius: 40px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #0a0a0a;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn:hover {
+            background: #f0f0f0;
+            transform: scale(1.02);
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Лоадер */
+        .loader {
+            text-align: center;
+            padding: 40px 0 20px;
+            display: none;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            margin: 0 auto 12px;
+            border: 2px solid #2a2a2a;
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loader p {
+            color: #737373;
+            font-size: 0.9rem;
+        }
+
+        /* Результат */
+        .result {
+            background: rgba(12, 12, 12, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid #262626;
+            border-radius: 24px;
+            overflow: hidden;
+            display: none;
+            margin-top: 24px;
+        }
+
+        .result-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #262626;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .result-header h3 {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #a3a3a3;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            color: #ccc;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-btn:hover {
+            background: #2a2a2a;
+            color: #fff;
+            border-color: #404040;
+        }
+
+        .result-content {
+            padding: 24px;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: #d4d4d4;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Тост */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1f1f1f;
+            border: 1px solid #2a2a2a;
+            border-radius: 40px;
+            padding: 10px 20px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            color: #fff;
+            font-size: 0.9rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .toast.error {
+            background: #2a1a1a;
+            border-color: #b91c1c;
+        }
+
+        /* Скролл */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 2px;
+        }
+
+        /* Подсказка */
+        .hint {
+            color: #525252;
+            font-size: 0.8rem;
+            margin-top: 16px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg">
+        <div class="grid"></div>
+        <div class="noise"></div>
+        <div class="glow"></div>
+    </div>
+
+    <div class="container">
+        <!-- Хедер с центрированием -->
+        <div class="header">
+            <h1>Forma</h1>
+            <p>превращаем идеи в тексты</p>
+        </div>
+
+        <!-- Карточка -->
+        <div class="card">
+            <div class="card-body">
+                <!-- Тема с счетчиком -->
+                <div class="topic-wrapper">
+                    <div class="topic-label">
+                        <span>тема</span>
+                        <span class="counter" id="counter">0/50</span>
+                    </div>
+                    <textarea 
+                        id="topic" 
+                        rows="2" 
+                        maxlength="50" 
+                        placeholder="например: почему важно говорить нет"
+                    ></textarea>
+                </div>
+
+                <!-- Основные настройки -->
+                <div class="settings">
+                    <div class="setting-row">
+                        <span class="setting-label">тон</span>
+                        <select id="tone">
+                            <option value="neutral">нейтральный</option>
+                            <option value="friendly">дружеский</option>
+                            <option value="serious">серьёзный</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <span class="setting-label">объём</span>
+                        <select id="length">
+                            <option value="short">короткий (150 знаков)</option>
+                            <option value="medium" selected>средний (300 знаков)</option>
+                            <option value="long">длинный (600 знаков)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Дополнительные опции -->
+                <div class="section-title">добавить в текст</div>
+                <div class="options-grid">
+                    <span class="option" data-feature="quote">цитата</span>
+                    <span class="option" data-feature="list">список</span>
+                    <span class="option" data-feature="examples">примеры</span>
+                    <span class="option" data-feature="conclusion">вывод</span>
+                </div>
+
+                <!-- Прогресс -->
+                <div class="progress" id="progress">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+
+                <!-- Кнопка -->
+                <button class="btn" id="generateBtn">
+                    создать текст
+                </button>
+
+                <!-- Лоадер -->
+                <div class="loader" id="loader">
+                    <div class="spinner"></div>
+                    <p>forma пишет...</p>
+                </div>
+
+                <!-- Подсказка -->
+                <div class="hint">
+                    текст до 900 символов · можно выбрать несколько опций
+                </div>
+            </div>
+        </div>
+
+        <!-- Результат (без статистики) -->
+        <div class="result" id="result">
+            <div class="result-header">
+                <h3>готово</h3>
+                <div class="result-actions">
+                    <button class="action-btn" id="copyBtn" title="копировать">📋</button>
+                    <button class="action-btn" id="saveBtn" title="сохранить">💾</button>
+                </div>
+            </div>
+            <div class="result-content" id="resultContent"></div>
+        </div>
+    </div>
+
+    <!-- Тост -->
+    <div class="toast" id="toast">
+        <span id="toastMessage">готово</span>
+    </div>
+
+    <script>
+        // Элементы
+        const topic = document.getElementById('topic');
+        const counter = document.getElementById('counter');
+        const generateBtn = document.getElementById('generateBtn');
+        const loader = document.getElementById('loader');
+        const result = document.getElementById('result');
+        const resultContent = document.getElementById('resultContent');
+        const progress = document.getElementById('progress');
+        const progressBar = document.getElementById('progressBar');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+
+        // Выбранные опции
+        const selectedFeatures = new Set();
+
+        // Обработчики для опций
+        document.querySelectorAll('.option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                const feature = opt.dataset.feature;
+                opt.classList.toggle('active');
+                
+                if (opt.classList.contains('active')) {
+                    selectedFeatures.add(feature);
+                } else {
+                    selectedFeatures.delete(feature);
+                }
+                
+                console.log('Выбраны опции:', Array.from(selectedFeatures));
+            });
+        });
+
+        // Счётчик символов
+        function updateCounter() {
+            const len = topic.value.length;
+            counter.textContent = `${len}/50`;
+            
+            counter.classList.remove('near-limit', 'at-limit');
+            if (len >= 45) counter.classList.add('near-limit');
+            if (len >= 50) counter.classList.add('at-limit');
+        }
+
+        topic.addEventListener('input', updateCounter);
+        updateCounter();
+
+        // Уведомление
+        function showToast(msg, isError = false) {
+            toastMessage.textContent = msg;
+            toast.style.display = 'flex';
+            toast.className = 'toast' + (isError ? ' error' : '');
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        // Прогресс
+        function updateProgress(percent) {
+            progress.style.display = 'block';
+            progressBar.style.width = percent + '%';
+            if (percent >= 100) {
+                setTimeout(() => {
+                    progress.style.display = 'none';
+                }, 300);
+            }
+        }
+
+        // Генерация текста через бэкенд
+        async function generateText(params) {
+            const response = await fetch('http://localhost:5000/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(params)
+            });
+            
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.error || 'Ошибка генерации');
+            }
+            
+            return data;
+        }
+
+        // Обработчик клика
+        generateBtn.addEventListener('click', async () => {
+            const params = {
+                topic: topic.value.trim(),
+                tone: document.getElementById('tone').value,
+                length: document.getElementById('length').value,
+                features: Array.from(selectedFeatures)
+            };
+
+            if (!params.topic) {
+                showToast('введите тему', true);
+                return;
+            }
+
+            // Блокируем кнопку и показываем загрузку
+            generateBtn.disabled = true;
+            loader.style.display = 'block';
+            result.style.display = 'none';
+            progress.style.display = 'block';
+            progressBar.style.width = '30%';
+
+            let p = 30;
+            const interval = setInterval(() => {
+                p += Math.random() * 15;
+                if (p >= 90) clearInterval(interval);
+                progressBar.style.width = Math.min(p, 90) + '%';
+            }, 300);
+
+            try {
+                const data = await generateText(params);
+                
+                progressBar.style.width = '100%';
+                resultContent.textContent = data.text;
+                result.style.display = 'block';
+                showToast('готово');
+                
+            } catch (error) {
+                console.error('Ошибка:', error);
+                showToast(error.message, true);
+                resultContent.textContent = `❌ ${error.message}`;
+                resultContent.style.color = '#d4a1a1';
+                result.style.display = 'block';
+            } finally {
+                generateBtn.disabled = false;
+                loader.style.display = 'none';
+                clearInterval(interval);
+                setTimeout(() => {
+                    progress.style.display = 'none';
+                    resultContent.style.color = '#d4d4d4';
+                }, 500);
+            }
+        });
+
+        // Копирование
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            const text = resultContent.textContent;
+            navigator.clipboard.writeText(text);
+            showToast('скопировано');
+        });
+
+        // Сохранение
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            const text = resultContent.textContent;
+            const blob = new Blob([text], {type: 'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'forma.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('сохранено');
+        });
+
+        // Проверка соединения с сервером при загрузке
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('http://localhost:5000/health');
+                if (response.ok) {
+                    console.log('✅ Соединение с сервером установлено');
+                }
+            } catch (e) {
+                console.warn('⚠️ Сервер не отвечает. Убедитесь, что он запущен: python app.py');
+                showToast('сервер не запущен', true);
+            }
+        });
+    </script>
+</body>
+</html>
